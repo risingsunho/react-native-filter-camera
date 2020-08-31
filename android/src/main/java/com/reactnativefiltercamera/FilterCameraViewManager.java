@@ -53,6 +53,10 @@ public class FilterCameraViewManager extends ViewGroupManager<CameraView> {
 
     @Override
     public CameraView createViewInstance(ThemedReactContext context) {
+      if(cameraView!=null)
+      {
+        cameraView.destroy();
+      }
       cameraView=new CameraView(context);      
       cameraView.setLifecycleOwner((AppCompatActivity)context.getCurrentActivity());                 
         return cameraView;
@@ -79,6 +83,13 @@ public class FilterCameraViewManager extends ViewGroupManager<CameraView> {
               double value=args.getDouble(0);              
               setBrightness(view,value);
             }            
+        break;
+        case "takePicture":
+              takePicture(view);                
+        break;
+        case "toggleVideo": 
+             takeVideo(view);          
+                   
         break;
       }
     }
@@ -119,10 +130,5 @@ public class FilterCameraViewManager extends ViewGroupManager<CameraView> {
     private void setBrightness(CameraView view,double progress) {
         brightnessFilter.setBrightness((float)progress);
         cameraView.setFilter(new MultiFilter(brightnessFilter, contrastFilter));
-    }
-
-    private void Destory(){
-        cameraView=null;        
-        // cameraView.clearLifecycleObserver();
     }
 }

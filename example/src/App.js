@@ -10,11 +10,7 @@ export default function App() {
   return (
     <View style={styles.cameraContainer}>
       <FilterCameraView ref={cameraRef} style={styles.cameraContainer} />
-      <View
-        style={{
-          position: 'absolute',
-        }}
-      >
+      <View style={styles.cameraUIView}>
         <TouchableOpacity
           style={styles.menuButton}
           onPress={() => {
