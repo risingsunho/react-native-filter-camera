@@ -21,6 +21,9 @@ import com.otaliastudios.cameraview.CameraUtils;
 import android.net.Uri;
 
 
+import com.otaliastudios.cameraview.gesture.Gesture;
+import com.otaliastudios.cameraview.gesture.GestureAction;
+
 import com.otaliastudios.cameraview.size.SizeSelector;
 import com.otaliastudios.cameraview.size.SizeSelectors;
 import com.otaliastudios.cameraview.size.AspectRatio;
@@ -73,8 +76,13 @@ public class FilterCameraViewManager extends ViewGroupManager<CameraView> {
         cameraView.destroy();
       }
       cameraView=new CameraView(context);      
-      onReceiveNativeEvent(context, cameraView);
-      cameraView.setLifecycleOwner((AppCompatActivity)context.getCurrentActivity());               
+      
+      cameraView.setLifecycleOwner((AppCompatActivity)context.getCurrentActivity());    
+      
+      cameraView.mapGesture(Gesture.PINCH, GestureAction.ZOOM); // Pinch to zoom!
+      cameraView.mapGesture(Gesture.TAP, GestureAction.AUTO_FOCUS); // Tap to focus!
+      
+      onReceiveNativeEvent(context, cameraView);       
 
       
 
@@ -121,6 +129,12 @@ public class FilterCameraViewManager extends ViewGroupManager<CameraView> {
               int height=args.getInt(1);
               setSize(view,width,height);
             }
+        break;
+        case "setFilter":
+            if(args !=null){
+              int filterIndex=args.getInt(0);
+              setFilter(view, filterIndex);
+            }
       }      
     }
 
@@ -141,24 +155,24 @@ public class FilterCameraViewManager extends ViewGroupManager<CameraView> {
           f.setReadable(true);
           f.setWritable(true);
             // A Picture was taken!
-            CameraUtils.writeToFile(result.getData(),f, new FileCallback() {
-              @Override
-              public void onFileReady(@Nullable File file) {
-                  if (file != null) {     
-                    WritableMap event = Arguments.createMap();
-                    event.putString("uri", file.toURI()+"");
-                    event.putString("name", file.getName());
-                    event.putString("type", "image/jpeg");
-                    event.putInt("width", width);      
-                    event.putInt("height", height);            
+          CameraUtils.writeToFile(result.getData(),f, new FileCallback() {
+            @Override
+            public void onFileReady(@Nullable File file) {
+                if (file != null) {     
+                  WritableMap event = Arguments.createMap();
+                  event.putString("uri", file.toURI()+"");
+                  event.putString("name", file.getName());
+                  event.putString("type", "image/jpeg");
+                  event.putInt("width", width);      
+                  event.putInt("height", height);            
 
-                    reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(cameraView.getId(), "topChange", event);
-                  } else {                      
-                    Log.d("TEST","Error while writing file.");
-                  }
-              }
+                  reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(cameraView.getId(), "topChange", event);
+                } else {                      
+                  Log.d("TEST","Error while writing file.");
+                }
+            }
           });
-            Log.d("TEST","onPictureTaken");
+          Log.d("TEST","onPictureTaken");
         }
         
         @Override
@@ -178,6 +192,14 @@ public class FilterCameraViewManager extends ViewGroupManager<CameraView> {
         public void onVideoRecordingStart() {
             // Notifies that the actual video recording has started.
             // Can be used to show some UI indicator for video recording or counting time.
+            
+            // File f=new File(mCallerContext.getFilesDir(),fileName+".mp4");
+            // WritableMap event = Arguments.createMap();
+            // event.putString("type", "start");    
+
+            // event.putString("uri", f.toURI()+"");
+            // reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(cameraView.getId(), "topChange", event);
+
             Log.d("TEST","onVideoRecordingStart");
 
         }
@@ -195,7 +217,8 @@ public class FilterCameraViewManager extends ViewGroupManager<CameraView> {
     private void takeVideo(CameraView view,String value){
       view.setMode(Mode.VIDEO);
       if(view.isTakingVideo() == false){
-          view.takeVideo(new File(mCallerContext.getFilesDir(),value+".mp4"));
+        fileName=value;
+        view.takeVideoSnapshot(new File(mCallerContext.getFilesDir(),value+".mp4"));
       }else if(view.isTakingVideo() == true){
           view.stopVideo();
       }
@@ -203,7 +226,7 @@ public class FilterCameraViewManager extends ViewGroupManager<CameraView> {
     private void takePicture(CameraView view, String value){
       view.setMode(Mode.PICTURE); // for pictures
       fileName=value;
-      view.takePicture();
+      view.takePictureSnapshot();
     }
 
     private void switchFlash(CameraView view){
@@ -246,6 +269,10 @@ public class FilterCameraViewManager extends ViewGroupManager<CameraView> {
       );
       view.setPictureSize(result);
       view.setVideoSize(result);
-
     }
+
+    private void setFilter(CameraView view, int filterIndex) {
+      Filters[] mAllFilters = Filters.values();
+      view.setFilter(mAllFilters[filterIndex].newInstance());
+  }
 }
