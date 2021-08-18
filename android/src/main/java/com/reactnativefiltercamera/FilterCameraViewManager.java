@@ -19,6 +19,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import com.otaliastudios.cameraview.CameraUtils;
 import android.net.Uri;
+import android.os.Environment;
 
 
 import com.otaliastudios.cameraview.gesture.Gesture;
@@ -27,6 +28,8 @@ import com.otaliastudios.cameraview.gesture.GestureAction;
 import com.otaliastudios.cameraview.size.SizeSelector;
 import com.otaliastudios.cameraview.size.SizeSelectors;
 import com.otaliastudios.cameraview.size.AspectRatio;
+import com.facebook.react.common.MapBuilder;
+import java.util.Map;
 
 
 import com.otaliastudios.cameraview.CameraException;
@@ -84,9 +87,7 @@ public class FilterCameraViewManager extends ViewGroupManager<CameraView> {
       
       onReceiveNativeEvent(context, cameraView);       
 
-      
-
-    return cameraView;
+      return cameraView;
   }
 
     @Override
@@ -135,6 +136,13 @@ public class FilterCameraViewManager extends ViewGroupManager<CameraView> {
               int filterIndex=args.getInt(0);
               setFilter(view, filterIndex);
             }
+            break;
+            case "setMode":
+            if(args !=null){
+              String value=args.getString(0); 
+              setMode(view,value);
+            }
+            break;
       }      
     }
 
@@ -151,7 +159,8 @@ public class FilterCameraViewManager extends ViewGroupManager<CameraView> {
           }
           final int width=result.getSize().getWidth();
           final int height=result.getSize().getHeight();
-          File f=new File(mCallerContext.getFilesDir(),fileName+"."+extension);
+          
+          File f=new File(Environment.getExternalStorageDirectory() + "/" + Environment.DIRECTORY_DCIM + "/"+fileName+"."+extension);
           f.setReadable(true);
           f.setWritable(true);
             // A Picture was taken!
@@ -160,13 +169,17 @@ public class FilterCameraViewManager extends ViewGroupManager<CameraView> {
             public void onFileReady(@Nullable File file) {
                 if (file != null) {     
                   WritableMap event = Arguments.createMap();
-                  event.putString("uri", file.toURI()+"");
+                  String uri = file.toURI()+"";
+                  if(!uri.contains("file:///")){
+                    uri=uri.replace("file:/","file:///");
+                  }
+                  event.putString("uri", uri);
                   event.putString("name", file.getName());
                   event.putString("type", "image/jpeg");
                   event.putInt("width", width);      
                   event.putInt("height", height);            
+                  emitEvent(reactContext,cameraView, "onPictureTaken", event);
 
-                  reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(cameraView.getId(), "topChange", event);
                 } else {                      
                   Log.d("TEST","Error while writing file.");
                 }
@@ -180,51 +193,60 @@ public class FilterCameraViewManager extends ViewGroupManager<CameraView> {
             int width=result.getSize().getWidth();
             int height=result.getSize().getHeight();
             WritableMap event = Arguments.createMap();
-            event.putString("uri", result.getFile().toURI()+"");   
+            String uri = result.getFile().toURI()+"";
+            if(!uri.contains("file:///")){
+              uri=uri.replace("file:/","file:///");
+            }
+            event.putString("uri", uri);
             event.putString("name", result.getFile().getName());
             event.putString("type", "video/mp4");    
             event.putInt("width", width);      
-            event.putInt("height", height);                        
-            reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(cameraView.getId(), "topChange", event);
+            event.putInt("height", height);               
+            emitEvent(reactContext,cameraView, "onVideoTaken", event);         
+            // reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(cameraView.getId(), "topChange", event);
         }
         
         @Override
         public void onVideoRecordingStart() {
             // Notifies that the actual video recording has started.
             // Can be used to show some UI indicator for video recording or counting time.
-            
-            // File f=new File(mCallerContext.getFilesDir(),fileName+".mp4");
-            // WritableMap event = Arguments.createMap();
-            // event.putString("type", "start");    
 
-            // event.putString("uri", f.toURI()+"");
-            // reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(cameraView.getId(), "topChange", event);
-
-            Log.d("TEST","onVideoRecordingStart");
-
+            WritableMap event = Arguments.createMap();
+            event.putString("state", "started");    
+            emitEvent(reactContext,cameraView, "onVideoRecordingStart", event);
         }
         
         @Override
         public void onVideoRecordingEnd() {
+          WritableMap event = Arguments.createMap();
+          event.putString("state", "end");    
+          emitEvent(reactContext,cameraView, "onVideoRecordingEnd", event);
           Log.d("TEST","onVideoRecordingEnd");
-
-            // Notifies that the actual video recording has ended.
-            // Can be used to remove UI indicators added in onVideoRecordingStart.
         }
     });      
   }
+  private void setMode(CameraView view,String value){
+    if(value=="camera"){
+      view.setMode(Mode.PICTURE); // for pictures
+    }
+    else if(value=="video"){
+      view.setMode(Mode.VIDEO);
+
+    }
+  }
 
     private void takeVideo(CameraView view,String value){
-      view.setMode(Mode.VIDEO);
       if(view.isTakingVideo() == false){
         fileName=value;
-        view.takeVideoSnapshot(new File(mCallerContext.getFilesDir(),value+".mp4"));
+        File f=new File(Environment.getExternalStorageDirectory() + "/" + Environment.DIRECTORY_DCIM + "/"+value+".mp4");
+        f.setReadable(true);
+        f.setWritable(true);
+        view.takeVideoSnapshot(f);
       }else if(view.isTakingVideo() == true){
           view.stopVideo();
       }
     }
     private void takePicture(CameraView view, String value){
-      view.setMode(Mode.PICTURE); // for pictures
       fileName=value;
       view.takePictureSnapshot();
     }
@@ -275,4 +297,33 @@ public class FilterCameraViewManager extends ViewGroupManager<CameraView> {
       Filters[] mAllFilters = Filters.values();
       view.setFilter(mAllFilters[filterIndex].newInstance());
   }
+
+  public void emitEvent(ThemedReactContext reactContext,CameraView view,String eventName, WritableMap args) {
+    reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(view.getId(), eventName, args);
+  }
+
+  public Map getExportedCustomBubblingEventTypeConstants() {
+    return MapBuilder.builder()
+            .put(
+                    "onPictureTaken",
+                    MapBuilder.of(
+                            "phasedRegistrationNames",
+                            MapBuilder.of("bubbled", "onPictureTaken")))
+            .put(
+                    "onVideoTaken",
+                    MapBuilder.of(
+                            "phasedRegistrationNames",
+                            MapBuilder.of("bubbled", "onVideoTaken")))
+            .put(
+                    "onVideoRecordingStart",
+                    MapBuilder.of(
+                            "phasedRegistrationNames",
+                            MapBuilder.of("bubbled", "onVideoRecordingStart")))  
+            .put(
+                    "onVideoRecordingEnd",
+                    MapBuilder.of(
+                            "phasedRegistrationNames",
+                            MapBuilder.of("bubbled", "onVideoRecordingEnd")))            
+            .build();
+}
 }
