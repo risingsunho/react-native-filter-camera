@@ -72,7 +72,13 @@ export function setFilter(cameraRef, value) {
 ```
 ```view.js
 import { FilterCameraView } from "react-native-filter-camera";
+import * as script from "./script";
+// ...
 
+const takePicture=()=>{
+  var fileName = "id_" + new Date().getTime();
+  script.takePicture(cameraRef, [fileName]);
+}
 // ...
 
 <FilterCameraView
@@ -82,7 +88,8 @@ import { FilterCameraView } from "react-native-filter-camera";
   onVideoTaken={onVideoTaken}
   onVideoRecordingEnd={onVideoRecordingEnd}
   style={{ width: "100%", height: "100%" }}
-      />
+/>
+
  ```
 
 ## Contributing
