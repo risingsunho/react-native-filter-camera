@@ -9,14 +9,81 @@ npm install react-native-filter-camera
 ```
 
 ## Usage
+```script.js
+import { UIManager, findNodeHandle } from "react-native";
+export function switchFlash(cameraRef) {
+  UIManager.dispatchViewManagerCommand(
+    findNodeHandle(cameraRef.current),
+    "switchFlash",
+    []
+  );
+}
+export function switchCameraDirection(cameraRef) {
+  UIManager.dispatchViewManagerCommand(
+    findNodeHandle(cameraRef.current),
+    "switchCameraDirection",
+    []
+  );
+}
+export function setContrast(cameraRef, value) {
+  UIManager.dispatchViewManagerCommand(
+    findNodeHandle(cameraRef.current),
+    "setContrast",
+    value
+  );
+}
+export function setBrightness(cameraRef, value) {
+  UIManager.dispatchViewManagerCommand(
+    findNodeHandle(cameraRef.current),
+    "setBrightness",
+    value
+  );
+}
+export function takePicture(cameraRef, value) {
+  UIManager.dispatchViewManagerCommand(
+    findNodeHandle(cameraRef.current),
+    "takePicture",
+    value
+  );
+}
+export function toggleVideo(cameraRef, value) {
+  UIManager.dispatchViewManagerCommand(
+    findNodeHandle(cameraRef.current),
+    "toggleVideo",
+    value
+  );
+}
+export function setRatio(cameraRef, value) {
+  UIManager.dispatchViewManagerCommand(
+    findNodeHandle(cameraRef.current),
+    "ratio",
+    value
+  );
+}
 
-```js
-import FilterCamera from "react-native-filter-camera";
+export function setFilter(cameraRef, value) {
+  UIManager.dispatchViewManagerCommand(
+    findNodeHandle(cameraRef.current),
+    "setFilter",
+    value
+  );
+}
+
+```
+```view.js
+import { FilterCameraView } from "react-native-filter-camera";
 
 // ...
 
-const result = await FilterCamera.multiply(3, 7);
-```
+<FilterCameraView
+  ref={cameraRef}
+  onPictureTaken={onPictureTaken}
+  onVideoRecordingStart={onVideoRecordingStart}
+  onVideoTaken={onVideoTaken}
+  onVideoRecordingEnd={onVideoRecordingEnd}
+  style={{ width: "100%", height: "100%" }}
+      />
+ ```
 
 ## Contributing
 
