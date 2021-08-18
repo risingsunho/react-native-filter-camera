@@ -1,6 +1,11 @@
 # react-native-filter-camera
 
-Filtered camera for react-native
+Filtered camera for react-native android
+
+This library is a bridge between CameraView (https://github.com/natario1/CameraView)
+
+and react-native.
+
 
 ## Installation
 
